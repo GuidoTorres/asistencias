@@ -1,6 +1,7 @@
-const dayjs = require("dayjs");
-const db = require("../../app/models/index");
-// Controlador de asistencia
+const fs = require('fs');
+const path = require('path');
+const dayjs = require('dayjs'); // Asegúrate de que este módulo esté instalado
+
 const postAsistencia = async (req, res) => {
     try {
         const { dni, latitud, longitud } = req.body;
@@ -10,7 +11,12 @@ const postAsistencia = async (req, res) => {
             return res.status(400).json({ mensaje: 'Por favor, sube una foto.' });
         }
 
-        const fotoBuffer = req.file.buffer; // Foto en memoria, puedes guardar en el sistema de archivos o en base de datos
+        // Guardar la foto en el sistema de archivos
+        const nombreArchivo = `${dni}_${Date.now()}.jpg`; // Nombre único basado en el DNI y la fecha
+        const rutaFoto = path.join(__dirname, '..', 'uploads', nombreArchivo); // Ruta para guardar la foto
+
+        // Mover el archivo al sistema de archivos
+        fs.writeFileSync(rutaFoto, req.file.buffer);
 
         // Eliminar espacios en blanco del DNI
         const dniLimpio = dni.trim();
@@ -44,7 +50,7 @@ const postAsistencia = async (req, res) => {
                         {
                             hora_salida: horaActual,
                             estado_salida: "Falta",
-                            foto_salida: fotoBuffer, // Guardar la foto de salida
+                            foto_salida: rutaFoto, // Guardar la ruta de la foto de salida
                             latitud_salida: latitud,
                             longitud_salida: longitud,
                         },
@@ -65,7 +71,7 @@ const postAsistencia = async (req, res) => {
                         {
                             hora_salida: horaActual,
                             estado_salida: "Asistencia",
-                            foto_salida: fotoBuffer, // Guardar la foto de salida
+                            foto_salida: rutaFoto, // Guardar la ruta de la foto de salida
                             latitud_salida: latitud,
                             longitud_salida: longitud,
                         },
@@ -106,7 +112,7 @@ const postAsistencia = async (req, res) => {
                 fecha: fechaActual,
                 hora_ingreso: horaActual,
                 estado_ingreso: estadoIngreso,
-                foto_ingreso: fotoBuffer, // Guardar la foto de ingreso
+                foto_ingreso: rutaFoto, // Guardar la ruta de la foto de ingreso
                 latitud_ingreso: latitud,
                 longitud_ingreso: longitud,
                 hora_salida: "Pendiente",
@@ -120,7 +126,3 @@ const postAsistencia = async (req, res) => {
         console.error(error);
     }
 };
-
-module.exports = { postAsistencia };
-
-
