@@ -1,8 +1,8 @@
 module.exports = {
-    username: "root",
-    password: "QFGFNZMiQfFrgesRzrIQuNXkAELwBxBN",
-    database: "railway",
-    host: "mysql.railway.internal",
+    username: "usuario",
+    password: "S3gur0!Passw0rd",
+    database: "asistencias",
+    host: "3.145.205.44",
     dialect: "mysql",
   };
   
