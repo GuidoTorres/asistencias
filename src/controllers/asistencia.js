@@ -84,9 +84,19 @@ const postAsistencia = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ mensaje: "Por favor, sube una foto." });
     }
+    const dniLimpio = dni.trim();
 
     const fotoBuffer = req.file.path;
-    const dniLimpio = dni.trim();
+    const compressedFilePath = path.join('uploads', `compressed-${req.file.filename}.jpeg`);
+
+    // Redimensionar y guardar la imagen
+    await sharp(fotoBuffer)
+      .resize(800) // Cambiar a un ancho máximo de 800px
+      .jpeg({ quality: 80 }) // Establecer la calidad a 80%
+      .toFile(compressedFilePath);
+
+    // Eliminar el archivo original si ya no lo necesitas
+    fs.unlinkSync(fotoBuffer);
 
     const empleado = await obtenerEmpleado(dniLimpio);
     if (!empleado) {
@@ -232,7 +242,7 @@ const getAsistenciaPorTrabajadorYFecha = async (req, res) => {
       });
     }
 
-
+    
 
     // Retornar los resultados
     return res.status(200).json({
