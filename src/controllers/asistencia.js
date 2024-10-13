@@ -98,7 +98,6 @@ const postAsistencia = async (req, res) => {
       .jpeg({ quality: 80 }) // Establecer la calidad a 80%
       .toFile(compressedFilePath);
 
-      fstat
     // Eliminar el archivo original si ya no lo necesitas
     fs.unlinkSync(fotoBuffer);
 
