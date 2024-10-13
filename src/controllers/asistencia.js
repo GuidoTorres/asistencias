@@ -1,6 +1,7 @@
 const dayjs = require("dayjs");
 const db = require("../../app/models/index");
 const path = require('node:path');
+const sharp = require("sharp");
 
 // Función para verificar si el empleado existe
 const obtenerEmpleado = async (dniLimpio) => {
