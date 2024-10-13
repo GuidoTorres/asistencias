@@ -1,9 +1,13 @@
-const express = require('express');
-const { postAsistencia } = require('../controllers/asistencia');
+const express = require("express");
+const {
+  postAsistencia,
+  getAsistenciaPorTrabajadorYFecha,
+} = require("../controllers/asistencia");
 const router = express.Router();
-const upload = require("../middlewares/multer")
+const upload = require("../middlewares/multer");
 
+router.get("/", getAsistenciaPorTrabajadorYFecha);
 
-router.post("/",upload.single('foto'), postAsistencia)
+router.post("/", upload.single("foto"), postAsistencia);
 
-module.exports = router
+module.exports = router;
