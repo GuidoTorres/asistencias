@@ -1,4 +1,10 @@
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 const db = require("../../app/models/index");
 const path = require("node:path");
 const sharp = require("sharp");
@@ -17,11 +23,11 @@ const registrarIngreso = async (
   nombre,
   fechaActual,
   horaActual,
-  fotoPath, // Cambiar de fotoBuffer a fotoPath
+  fotoPath,
   latitud,
   longitud
 ) => {
-  const estadoIngreso = dayjs().isBefore(dayjs().set("hour", 7).set("minute", 30))
+  const estadoIngreso = dayjs().tz("America/Lima").isBefore(dayjs().tz("America/Lima").set("hour", 7).set("minute", 30))
     ? "Asistencia"
     : "Falta";
 
@@ -45,7 +51,7 @@ const registrarSalida = async (
   registroExistente,
   horaActual,
   estadoSalida,
-  fotoPath, // Cambiar de fotoBuffer a fotoPath
+  fotoPath,
   latitud,
   longitud
 ) => {
@@ -53,7 +59,7 @@ const registrarSalida = async (
     {
       hora_salida: horaActual,
       estado_salida: estadoSalida,
-      foto_salida: fotoPath, // Guardar la ruta de la foto comprimida
+      foto_salida: fotoPath,
       latitud_salida: latitud + "," + longitud,
     },
     { where: { id: registroExistente.id } }
@@ -75,8 +81,8 @@ const postAsistencia = async (req, res) => {
 
     // Redimensionar y guardar la imagen comprimida
     await sharp(fotoBuffer)
-      .resize(800) // Cambiar a un ancho máximo de 800px
-      .jpeg({ quality: 80 }) // Establecer la calidad a 80%
+      .resize(800)
+      .jpeg({ quality: 80 })
       .toFile(compressedFilePath);
 
     // Eliminar el archivo original si ya no lo necesitas
@@ -88,7 +94,7 @@ const postAsistencia = async (req, res) => {
     }
 
     const nombre = empleado.nombre;
-    const fecha = dayjs();
+    const fecha = dayjs().tz("America/Lima");
     const horaActual = fecha.format("HH:mm:ss");
     const fechaActual = fecha.format("DD-MM-YYYY");
 
@@ -98,10 +104,10 @@ const postAsistencia = async (req, res) => {
     });
 
     // Restricción de horarios para ingreso y salida
-    const horaInicioIngreso = dayjs().set("hour", 6).set("minute", 0);
-    const horaFinIngreso = dayjs().set("hour", 7).set("minute", 30);
-    const horaInicioSalida = dayjs().set("hour", 16).set("minute", 0);
-    const horaFinSalida = dayjs().set("hour", 19).set("minute", 30);
+    const horaInicioIngreso = dayjs().tz("America/Lima").set("hour", 6).set("minute", 0);
+    const horaFinIngreso = dayjs().tz("America/Lima").set("hour", 7).set("minute", 30);
+    const horaInicioSalida = dayjs().tz("America/Lima").set("hour", 16).set("minute", 0);
+    const horaFinSalida = dayjs().tz("America/Lima").set("hour", 19).set("minute", 30);
 
     // Validar si es horario permitido para registrar ingreso (6:00 a.m. - 7:30 a.m.)
     if (registroExistente === null && (fecha.isBefore(horaInicioIngreso) || fecha.isAfter(horaFinIngreso))) {
@@ -122,7 +128,7 @@ const postAsistencia = async (req, res) => {
           registroExistente,
           horaActual,
           "Asistencia",
-          compressedFilePath, // Ruta de la imagen comprimida
+          compressedFilePath,
           latitud,
           longitud
         );
@@ -140,7 +146,7 @@ const postAsistencia = async (req, res) => {
         nombre,
         fechaActual,
         horaActual,
-        compressedFilePath, // Ruta de la imagen comprimida
+        compressedFilePath,
         latitud,
         longitud
       );
@@ -151,6 +157,7 @@ const postAsistencia = async (req, res) => {
     console.error(error);
   }
 };
+
 
 const getAsistenciaPorTrabajadorYFecha = async (req, res) => {
   try {
