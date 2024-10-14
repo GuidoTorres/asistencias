@@ -1,6 +1,6 @@
 const dayjs = require("dayjs");
 const db = require("../../app/models/index");
-const path = require('node:path');
+const path = require("node:path");
 const sharp = require("sharp");
 const fs = require("fs");
 
@@ -17,13 +17,11 @@ const registrarIngreso = async (
   nombre,
   fechaActual,
   horaActual,
-  fotoBuffer,
+  fotoPath, // Cambiar de fotoBuffer a fotoPath
   latitud,
   longitud
 ) => {
-  const estadoIngreso = dayjs().isBefore(
-    dayjs().set("hour", 7).set("minute", 30)
-  )
+  const estadoIngreso = dayjs().isBefore(dayjs().set("hour", 7).set("minute", 30))
     ? "Asistencia"
     : "Falta";
 
@@ -33,7 +31,7 @@ const registrarIngreso = async (
     fecha: fechaActual,
     hora_ingreso: horaActual,
     estado_ingreso: estadoIngreso,
-    foto_ingreso: fotoBuffer, // Guardar la foto de ingreso
+    foto_ingreso: fotoPath, // Guardar la ruta de la foto comprimida
     latitud_ingreso: latitud + "," + longitud,
     hora_salida: "Pendiente",
     estado_salida: "Pendiente",
@@ -42,30 +40,12 @@ const registrarIngreso = async (
   return { mensaje: "Ingreso registrado." };
 };
 
-// Función para actualizar el estado del día
-const actualizarEstadoDia = async (empleado_id, fechaActual) => {
-  const registroActualizado = await db.asistencias.findOne({
-    where: { empleado_id, fecha: fechaActual },
-  });
-
-  const estadoDia =
-    registroActualizado.estado_ingreso === "Asistencia" &&
-    registroActualizado.estado_salida === "Asistencia"
-      ? "Asistencia"
-      : "Falta";
-
-  await db.asistencias.update(
-    { estado_dia: estadoDia },
-    { where: { id: registroActualizado.id } }
-  );
-};
-
 // Función para registrar la salida
 const registrarSalida = async (
   registroExistente,
   horaActual,
   estadoSalida,
-  fotoBuffer,
+  fotoPath, // Cambiar de fotoBuffer a fotoPath
   latitud,
   longitud
 ) => {
@@ -73,13 +53,14 @@ const registrarSalida = async (
     {
       hora_salida: horaActual,
       estado_salida: estadoSalida,
-      foto_salida: fotoBuffer,
+      foto_salida: fotoPath, // Guardar la ruta de la foto comprimida
       latitud_salida: latitud + "," + longitud,
     },
     { where: { id: registroExistente.id } }
   );
 };
 
+// Función principal para manejar la asistencia
 const postAsistencia = async (req, res) => {
   try {
     const { dni, latitud, longitud } = req.body;
@@ -92,7 +73,7 @@ const postAsistencia = async (req, res) => {
     const fotoBuffer = req.file.path;
     const compressedFilePath = path.join('uploads', `compressed-${req.file.filename}.jpeg`);
 
-    // Redimensionar y guardar la imagen
+    // Redimensionar y guardar la imagen comprimida
     await sharp(fotoBuffer)
       .resize(800) // Cambiar a un ancho máximo de 800px
       .jpeg({ quality: 80 }) // Establecer la calidad a 80%
@@ -116,88 +97,50 @@ const postAsistencia = async (req, res) => {
       where: { empleado_id: empleado.id, fecha: fechaActual },
     });
 
-    const horaLimite = dayjs().set("hour", 19).set("minute", 0);
+    // Restricción de horarios para ingreso y salida
+    const horaInicioIngreso = dayjs().set("hour", 6).set("minute", 0);
+    const horaFinIngreso = dayjs().set("hour", 7).set("minute", 30);
+    const horaInicioSalida = dayjs().set("hour", 16).set("minute", 0);
+    const horaFinSalida = dayjs().set("hour", 19).set("minute", 30);
 
-    // Si no hay registro de ingreso y ya son más de las 19:00 (7 p.m.), registrar falta en ambos casos
-    if (!registroExistente && fecha.isAfter(horaLimite)) {
-      await db.asistencias.create({
-        empleado_id: empleado.id,
-        nombre: nombre,
-        fecha: fechaActual,
-        hora_ingreso: "No registrado",
-        estado_ingreso: "Falta",
-        foto_ingreso: null, // No hay foto de ingreso
-        latitud_ingreso: null,
-        hora_salida: "No registrado",
-        estado_salida: "Falta",
-        foto_salida: fotoBuffer,
-        latitud_salida: latitud + "," + longitud,
-        estado_dia: "Falta",
-      });
-
-      return res.status(200).json({ mensaje: "Asistencia registrada." });
+    // Validar si es horario permitido para registrar ingreso (6:00 a.m. - 7:30 a.m.)
+    if (registroExistente === null && (fecha.isBefore(horaInicioIngreso) || fecha.isAfter(horaFinIngreso))) {
+      return res.status(400).json({ mensaje: "El horario de ingreso es de 6:00 a.m. a 7:30 a.m." });
     }
 
+    // Si ya existe un registro de ingreso, verificar la salida
     if (registroExistente) {
       const estadoSalida = registroExistente.estado_salida?.toLowerCase();
 
+      // Validar si es horario permitido para registrar salida (4:00 p.m. - 7:30 p.m.)
       if (estadoSalida === "pendiente") {
-        // Si es después de las 19:30, registrar como "Falta"
-        const horaLimiteSalida = dayjs().set("hour", 19).set("minute", 30);
-        if (fecha.isAfter(horaLimiteSalida)) {
-          await registrarSalida(
-            registroExistente,
-            horaActual,
-            "Falta",
-            fotoBuffer,
-            latitud,
-            longitud
-          );
-          await db.asistencias.update(
-            { estado_dia: "Falta" },
-            { where: { id: registroExistente.id } }
-          );
-          return res
-            .status(200)
-            .json({ mensaje: "Salida registrada con falta." });
+        if (fecha.isBefore(horaInicioSalida) || fecha.isAfter(horaFinSalida)) {
+          return res.status(400).json({ mensaje: "El horario de salida es de 4:00 p.m. a 7:30 p.m." });
         }
 
-        // Registrar salida entre 16:00 y 19:30
-        const horaInicioSalida = dayjs().set("hour", 16).set("minute", 0);
-        if (
-          fecha.isAfter(horaInicioSalida) &&
-          fecha.isBefore(horaLimiteSalida)
-        ) {
-          await registrarSalida(
-            registroExistente,
-            horaActual,
-            "Asistencia",
-            fotoBuffer,
-            latitud,
-            longitud
-          );
-          await actualizarEstadoDia(empleado.id, fechaActual);
-          return res
-            .status(200)
-            .json({ mensaje: "Salida registrada correctamente." });
-        }
-
-        return res
-          .status(400)
-          .json({ mensaje: "La salida se registra a partir de las 4:30." });
+        await registrarSalida(
+          registroExistente,
+          horaActual,
+          "Asistencia",
+          compressedFilePath, // Ruta de la imagen comprimida
+          latitud,
+          longitud
+        );
+        await actualizarEstadoDia(empleado.id, fechaActual);
+        return res.status(200).json({ mensaje: "Salida registrada correctamente." });
       }
 
       return res.status(400).json({
         mensaje: "Ya se registró tanto el ingreso como la salida hoy.",
       });
     } else {
-      // Si no existe un registro, registrar el ingreso
+      // Registrar el ingreso si no existe un registro
       const response = await registrarIngreso(
         empleado,
         nombre,
         fechaActual,
         horaActual,
-        fotoBuffer,
+        compressedFilePath, // Ruta de la imagen comprimida
         latitud,
         longitud
       );
