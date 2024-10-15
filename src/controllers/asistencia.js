@@ -27,7 +27,9 @@ const registrarIngreso = async (
   latitud,
   longitud
 ) => {
-  const estadoIngreso = dayjs().tz("America/Lima").isBefore(dayjs().tz("America/Lima").set("hour", 7).set("minute", 30))
+  const estadoIngreso = dayjs()
+    .tz("America/Lima")
+    .isBefore(dayjs().tz("America/Lima").set("hour", 7).set("minute", 30))
     ? "Asistencia"
     : "Falta";
 
@@ -77,7 +79,10 @@ const postAsistencia = async (req, res) => {
     const dniLimpio = dni.trim();
 
     const fotoBuffer = req.file.path;
-    const compressedFilePath = path.join('uploads', `compressed-${req.file.filename}.jpeg`);
+    const compressedFilePath = path.join(
+      "uploads",
+      `compressed-${req.file.filename}.jpeg`
+    );
 
     // Redimensionar y guardar la imagen comprimida
     await sharp(fotoBuffer)
@@ -104,14 +109,31 @@ const postAsistencia = async (req, res) => {
     });
 
     // Restricción de horarios para ingreso y salida
-    const horaInicioIngreso = dayjs().tz("America/Lima").set("hour", 6).set("minute", 0);
-    const horaFinIngreso = dayjs().tz("America/Lima").set("hour", 7).set("minute", 30);
-    const horaInicioSalida = dayjs().tz("America/Lima").set("hour", 16).set("minute", 0);
-    const horaFinSalida = dayjs().tz("America/Lima").set("hour", 19).set("minute", 30);
+    const horaInicioIngreso = dayjs()
+      .tz("America/Lima")
+      .set("hour", 15)
+      .set("minute", 0);
+    const horaFinIngreso = dayjs()
+      .tz("America/Lima")
+      .set("hour", 16)
+      .set("minute", 30);
+    const horaInicioSalida = dayjs()
+      .tz("America/Lima")
+      .set("hour", 16)
+      .set("minute", 0);
+    const horaFinSalida = dayjs()
+      .tz("America/Lima")
+      .set("hour", 19)
+      .set("minute", 30);
 
     // Validar si es horario permitido para registrar ingreso (6:00 a.m. - 7:30 a.m.)
-    if (registroExistente === null && (fecha.isBefore(horaInicioIngreso) || fecha.isAfter(horaFinIngreso))) {
-      return res.status(400).json({ mensaje: "El horario de ingreso es de 6:00 a.m. a 7:30 a.m." });
+    if (
+      registroExistente === null &&
+      (fecha.isBefore(horaInicioIngreso) || fecha.isAfter(horaFinIngreso))
+    ) {
+      return res
+        .status(400)
+        .json({ mensaje: "El horario de ingreso es de 6:00 a.m. a 7:30 a.m." });
     }
 
     // Si ya existe un registro de ingreso, verificar la salida
@@ -121,7 +143,9 @@ const postAsistencia = async (req, res) => {
       // Validar si es horario permitido para registrar salida (4:00 p.m. - 7:30 p.m.)
       if (estadoSalida === "pendiente") {
         if (fecha.isBefore(horaInicioSalida) || fecha.isAfter(horaFinSalida)) {
-          return res.status(400).json({ mensaje: "El horario de salida es de 4:00 p.m. a 7:30 p.m." });
+          return res.status(400).json({
+            mensaje: "El horario de salida es de 4:00 p.m. a 7:30 p.m.",
+          });
         }
 
         await registrarSalida(
@@ -133,7 +157,9 @@ const postAsistencia = async (req, res) => {
           longitud
         );
         await actualizarEstadoDia(empleado.id, fechaActual);
-        return res.status(200).json({ mensaje: "Salida registrada correctamente." });
+        return res
+          .status(200)
+          .json({ mensaje: "Salida registrada correctamente." });
       }
 
       return res.status(400).json({
@@ -158,12 +184,9 @@ const postAsistencia = async (req, res) => {
   }
 };
 
-
 const getAsistenciaPorTrabajadorYFecha = async (req, res) => {
   try {
     const { id, fecha } = req.query;
-
-
 
     let whereClause = {};
 
@@ -186,26 +209,43 @@ const getAsistenciaPorTrabajadorYFecha = async (req, res) => {
     // Buscar las asistencias que cumplan con las condiciones
     const asistencias = await db.asistencias.findAll({
       where: whereClause,
-      include:[{model:db.empleados}]
+      include: [{ model: db.empleados }],
     });
 
     if (!asistencias || asistencias.length === 0) {
       return res.status(404).json({
-        mensaje: "No se encontraron registros de asistencia con los parámetros proporcionados.",
+        mensaje:
+          "No se encontraron registros de asistencia con los parámetros proporcionados.",
       });
     }
 
-    
+    const format = asistencias.map((item, index) => {
+      return {
+        ...item.get(),
+        id: index + 1,
+        foto_ingreso: item?.foto_ingreso
+          ? `http://3.145.205.44/${item?.foto_ingreso}`
+          : "",
+        foto_salida: item?.foto_salida
+          ? `http://3.145.205.44/${item?.foto_ingreso}`
+          : "",
+        latitud_ingreso: item?.latitud_ingreso
+          ? `https://www.google.com/maps?q=${item?.latitud_ingreso}`
+          : "",
+        latitud_ingreso: item?.latitud_salida
+          ? `https://www.google.com/maps?q=${item?.latitud_salida}`
+          : "",
+      };
+    });
 
     // Retornar los resultados
     return res.status(200).json({
-      data: asistencias,
+      data: format,
     });
   } catch (error) {
     res.status(500).json({ mensaje: error.message });
     console.error(error);
   }
 };
-
 
 module.exports = { postAsistencia, getAsistenciaPorTrabajadorYFecha };
