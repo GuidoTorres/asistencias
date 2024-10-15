@@ -111,11 +111,11 @@ const postAsistencia = async (req, res) => {
     // Restricción de horarios para ingreso y salida
     const horaInicioIngreso = dayjs()
       .tz("America/Lima")
-      .set("hour", 15)
+      .set("hour", 16)
       .set("minute", 0);
     const horaFinIngreso = dayjs()
       .tz("America/Lima")
-      .set("hour", 16)
+      .set("hour", 17)
       .set("minute", 30);
     const horaInicioSalida = dayjs()
       .tz("America/Lima")
