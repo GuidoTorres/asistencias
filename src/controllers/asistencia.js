@@ -146,11 +146,11 @@ const postAsistencia = async (req, res) => {
     // Restricción de horarios para ingreso y salida
     const horaInicioIngreso = dayjs()
       .tz("America/Lima")
-      .set("hour", 16)
+      .set("hour", 6)
       .set("minute", 0);
     const horaFinIngreso = dayjs()
       .tz("America/Lima")
-      .set("hour", 17)
+      .set("hour", 7)
       .set("minute", 30);
     const horaInicioSalida = dayjs()
       .tz("America/Lima")
@@ -264,9 +264,12 @@ const getAsistenciaPorTrabajadorYFecha = async (req, res) => {
         foto_salida: item?.foto_salida
           ? `http://3.145.205.44/${item?.foto_ingreso}`
           : "",
-        latitud_ingreso: `https://www.google.com/maps?q=${item?.latitud_ingreso}`,
-
-        latitud_ingreso: `https://www.google.com/maps?q=${item?.latitud_salida}`,
+        latitud_ingreso: item?.latitud_ingreso
+          ? `https://www.google.com/maps?q=${item?.latitud_ingreso}`
+          : "",
+        latitud_salida: item?.latitud_salida
+          ? `https://www.google.com/maps?q=${item?.latitud_salida}`
+          : "",
       };
     });
 
