@@ -75,11 +75,17 @@ const actualizarEstadoDia = async (empleado_id, fechaActual) => {
     });
 
     if (!registro) {
-      throw new Error("No se encontró el registro de asistencia para el empleado y la fecha proporcionados.");
+      throw new Error(
+        "No se encontró el registro de asistencia para el empleado y la fecha proporcionados."
+      );
     }
 
     // Si tanto el ingreso como la salida están registrados, actualiza el estado del día
-    if (registro.hora_ingreso && registro.hora_salida && registro.estado_ingreso !== "Falta") {
+    if (
+      registro.hora_ingreso &&
+      registro.hora_salida &&
+      registro.estado_ingreso !== "Falta"
+    ) {
       await db.asistencias.update(
         { estado_dia: "Asistencia completa" }, // O cualquier otro estado que definas
         { where: { id: registro.id } }
@@ -87,7 +93,7 @@ const actualizarEstadoDia = async (empleado_id, fechaActual) => {
     } else if (registro.estado_ingreso === "Falta") {
       // Si el estado de ingreso fue "Falta", se podría marcar como falta total
       await db.asistencias.update(
-        { estado_dia: "Falta" }, 
+        { estado_dia: "Falta" },
         { where: { id: registro.id } }
       );
     }
@@ -96,7 +102,6 @@ const actualizarEstadoDia = async (empleado_id, fechaActual) => {
     throw error; // Lanza el error para que se maneje en la función principal
   }
 };
-
 
 // Función principal para manejar la asistencia
 const postAsistencia = async (req, res) => {
@@ -259,12 +264,9 @@ const getAsistenciaPorTrabajadorYFecha = async (req, res) => {
         foto_salida: item?.foto_salida
           ? `http://3.145.205.44/${item?.foto_ingreso}`
           : "",
-        latitud_ingreso: item?.latitud_ingreso
-          ? `https://www.google.com/maps?q=${item?.latitud_ingreso}`
-          : "",
-        latitud_ingreso: item?.latitud_salida
-          ? `https://www.google.com/maps?q=${item?.latitud_salida}`
-          : "",
+        latitud_ingreso: `https://www.google.com/maps?q=${item?.latitud_ingreso}`,
+
+        latitud_ingreso: `https://www.google.com/maps?q=${item?.latitud_salida}`,
       };
     });
 
