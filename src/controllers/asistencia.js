@@ -67,6 +67,36 @@ const registrarSalida = async (
     { where: { id: registroExistente.id } }
   );
 };
+const actualizarEstadoDia = async (empleado_id, fechaActual) => {
+  try {
+    // Busca el registro de asistencia para el empleado y la fecha actual
+    const registro = await db.asistencias.findOne({
+      where: { empleado_id, fecha: fechaActual },
+    });
+
+    if (!registro) {
+      throw new Error("No se encontró el registro de asistencia para el empleado y la fecha proporcionados.");
+    }
+
+    // Si tanto el ingreso como la salida están registrados, actualiza el estado del día
+    if (registro.hora_ingreso && registro.hora_salida && registro.estado_ingreso !== "Falta") {
+      await db.asistencias.update(
+        { estado_dia: "Asistencia completa" }, // O cualquier otro estado que definas
+        { where: { id: registro.id } }
+      );
+    } else if (registro.estado_ingreso === "Falta") {
+      // Si el estado de ingreso fue "Falta", se podría marcar como falta total
+      await db.asistencias.update(
+        { estado_dia: "Falta" }, 
+        { where: { id: registro.id } }
+      );
+    }
+  } catch (error) {
+    console.error("Error al actualizar el estado del día:", error);
+    throw error; // Lanza el error para que se maneje en la función principal
+  }
+};
+
 
 // Función principal para manejar la asistencia
 const postAsistencia = async (req, res) => {
