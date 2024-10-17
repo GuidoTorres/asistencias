@@ -259,10 +259,10 @@ const getAsistenciaPorTrabajadorYFecha = async (req, res) => {
         ...item.get(),
         id: index + 1,
         foto_ingreso: item?.foto_ingreso
-          ? `http://3.145.205.44/${item?.foto_ingreso}`
+          ? `https://asistenciasorsit.xyz/${item?.foto_ingreso}`
           : "",
         foto_salida: item?.foto_salida
-          ? `http://3.145.205.44/${item?.foto_ingreso}`
+          ? `https://asistenciasorsit.xyz/${item?.foto_ingreso}`
           : "",
         latitud_ingreso: item?.latitud_ingreso
           ? `https://www.google.com/maps?q=${item?.latitud_ingreso}`
